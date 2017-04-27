@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Payroll Calc for Nanny</title>
+    <meta charset='utf-8' 'YX28UGGxpcRqyTngUy2vluaO' />
+	<script type="text/javascript" src="./bower_components/jquery/dist/jquery.min.js"></script>
+  <script type="text/javascript" src="./bower_components/moment/min/moment.min.js"></script>
+  <script type="text/javascript" src="./bower_components/eonasdan-bootstrap-datetimepicker/build/js/bootstrap-datetimepicker.min.js"></script>
+  <link rel="stylesheet" href="./bower_components/eonasdan-bootstrap-datetimepicker/build/css/bootstrap-datetimepicker.min.css" />
+<style>
+
+.thurston{
+	background:#b3cae2;
+}
+.ryan{
+	background:#e9b8b6;
+}
+.nitz{
+	background:#ffffff;
+}
+.dayOfWeek{
+	background:#BEBEBE;
+}
+</style	
+  </head>
+  <body>
+
+    <!--Add buttons to initiate auth sequence and sign out-->
+    <button id="authorize-button" style="display: none;">Authorize</button>
+    <button id="signout-button" style="display: none;">Sign Out</button>
+<div style="overflow:hidden;">
+    <div class="form-group">
+        <div class="row">
+            <div class="col-xs-1 col-md-1">
+                <div id="datetimepicker12"></div>
+            </div>
+        </div>
+    </div>
+    <script type="text/javascript">
+		var queryDate=moment();
+        $(function () {
+            $('#datetimepicker12').datetimepicker({
+                inline: true,
+				format: 'MM/dd/YYYY',
+                sideBySide: true
+            }).on('dp.change', function (ev) {
+				queryDate = moment(ev.date);				
+				readTimeSheet();
+			});
+        });
+    </script>
+</div>
+<div class="container-fluid">
+<div class="row">
+<div class="col-xs-2 col-md-2">DAY / TIME</div><div class="col-xs-1 col-md-1">WITH WHO</div><div class="col-xs-1 col-md-1">WHERE</div>
+<div class="col-md-3 thurston">THURSTON COSTS</div>
+<div class="col-md-3 ryan">RYAN COSTS</div><div class="col-xs-1 col-md-1">NITZ TOTALS</div>
+</div>
+<div class="row">
+<div class="col-xs-4 col-md-4"></div>
+<div class="col-xs-1 col-md-1 thurston">Hours</div><div class="col-xs-1 col-md-1 thurston">Rate</div><div class="col-xs-1 col-md-1 thurston">Total</div>
+<div class="col-xs-1 col-md-1 ryan">Hours</div><div class="col-xs-1 col-md-1 ryan">Rate</div><div class="col-xs-1 col-md-1 ryan">Total</div>
+</div>
+<timesheet id="content">
+</timesheet>
+<div class="row">
+<div class="col-xs-4 col-md-4"></div>
+<div class="col-md-3"></div>
+<div class="col-md-3"></div>
+<div class="col-xs-1 col-md-1"></div>
+</div>
+<div class="row">
+<div class="col-xs-4 col-md-4"></div>
+<div class="col-xs-2 col-md-2"></div>
+<div class="col-xs-1 col-md-1 thurston" id="thurston_total">$</div>
+<div class="col-xs-2 col-md-2"></div>
+<div class="col-xs-1 col-md-1 ryan" id="ryan_total">$</div>
+<div class="col-xs-1 col-md-1" id="nitz_total">$</div>
+
+</div>
+<div class="row">
+<div class="col-xs-4 col-md-4"></div>
+<div class="col-xs-2 col-md-2"></div><div class="col-xs-1 col-md-1 thurston"> Thurston Total</div>
+<div class="col-xs-2 col-md-2"></div>
+<div class="col-xs-1 col-md-1 ryan">Ryan Total</div>
+<div class="col-xs-1 col-md-1">Nitz Total</div>
+
+</div>
+</div>
+</body>
+    <script type="text/javascript">
+	var columns = ["DAY","TIME","","NITZ WITH WHO","WHERE","THURSTON Hours","Rate","TOTAL","RYAN  Hours","Rate","TOTAL","NITZ TOTALS"];
+	var excelColor = ["#b3cae2","#e9b8b6"];
+	var CALC_COLUMN = 3;
+
+      // Client ID and API key from the Developer Console
+      var CLIENT_ID = '202092006015-j6b70cvq260ltgm6ohurn2g5knajq8rt.apps.googleusercontent.com';
+
+      // Array of API discovery doc URLs for APIs used by the quickstart
+      var DISCOVERY_DOCS = ["https://sheets.googleapis.com/$discovery/rest?version=v4"];
+
+      // Authorization scopes required by the API; multiple scopes can be
+      // included, separated by spaces.
+      var SCOPES = "https://www.googleapis.com/auth/spreadsheets.readonly";
+
+      var authorizeButton = document.getElementById('authorize-button');
+      var signoutButton = document.getElementById('signout-button');
+
+      /**
+       *  On load, called to load the auth2 library and API client library.
+       */
+      function handleClientLoad() {
+        gapi.load('client:auth2', initClient);
+      }
+
+      /**
+       *  Initializes the API client library and sets up sign-in state
+       *  listeners.
+       */
+      function initClient() {
+        gapi.client.init({
+          discoveryDocs: DISCOVERY_DOCS,
+          clientId: CLIENT_ID,
+          scope: SCOPES
+        }).then(function () {
+          // Listen for sign-in state changes.
+          gapi.auth2.getAuthInstance().isSignedIn.listen(updateSigninStatus);
+
+          // Handle the initial sign-in state.
+          updateSigninStatus(gapi.auth2.getAuthInstance().isSignedIn.get());
+          authorizeButton.onclick = handleAuthClick;
+          signoutButton.onclick = handleSignoutClick;
+        });
+      }
+
+      /**
+       *  Called when the signed in status changes, to update the UI
+       *  appropriately. After a sign-in, the API is called.
+       */
+      function updateSigninStatus(isSignedIn) {
+        if (isSignedIn) {
+          authorizeButton.style.display = 'none';
+          signoutButton.style.display = 'block';
+		  readLookups();
+		  readTimeSheet();
+        } else {
+          authorizeButton.style.display = 'block';
+          signoutButton.style.display = 'none';
+        }
+      }
+
+      /**
+       *  Sign in the user upon button click.
+       */
+      function handleAuthClick(event) {
+        gapi.auth2.getAuthInstance().signIn();
+      }
+
+      /**
+       *  Sign out the user upon button click.
+       */
+      function handleSignoutClick(event) {
+        gapi.auth2.getAuthInstance().signOut();
+      }
+
+      /**
+       * get the data from the payroll spreadsheet:
+       * https://docs.google.com/spreadsheets/d/1Rr2azn0YFmpI9xtkV97N_fH-IOthVcAjeNdc6uDanN0
+       */
+      function readTimeSheet() {
+        gapi.client.sheets.spreadsheets.values.get({
+          spreadsheetId: '1Rr2azn0YFmpI9xtkV97N_fH-IOthVcAjeNdc6uDanN0',
+          range: 'Data!A2:G',
+        }).then(function(response) {
+          var range = response.result;
+          if (range.values.length > 0) {
+            showTimeSheet(response.result.values);
+          } else {
+            appendPre('No data found.');
+          }
+        }, function(response) {
+          appendPre('Error: ' + response.result.error.message);
+        });
+      }
+	  var rates;
+	  function readLookups() {
+        gapi.client.sheets.spreadsheets.values.get({
+          spreadsheetId: '1Rr2azn0YFmpI9xtkV97N_fH-IOthVcAjeNdc6uDanN0',
+          range: 'LookUps!A:C',
+        }).then(function(response) {
+          var range = response.result;
+          if (range.values.length > 0) {
+			rates = range.values;
+          } else {
+            appendPre('No data found.');
+          }
+        }, function(response) {
+          appendPre('Error: ' + response.result.error.message);
+        });
+      }
+	  
+	  
+	  function showTimeSheet( records){
+	  	var dayOfMonth = queryDate.date();
+		console.log( dayOfMonth );
+
+		if( dayOfMonth < 15 ){ 
+			queryDate.date(1);
+		}else{ 
+			queryDate.date(15);
+		}
+	  	var contentDiv = d3.select("#content");
+		records = records.filter(filterBy2Week);
+		console.log( "records: "+records.length);
+		addCalculatedColumns(records);
+		// create a row for each object in the data
+		contentDiv.selectAll('div').remove();
+		var days = contentDiv.selectAll('div')
+		.data(twoWeeks(queryDate))
+		.enter()
+		  .append('div')
+		  .attr("class","row dayOfWeek")
+		  .text(function(d){
+			var dayDate = queryDate;
+			return dayDate.date(d).format('dddd DD');
+		  });
+		  
+		var rows = days.selectAll('div')
+		  .data(function(d){
+			return recordsOnDay(records, d);
+		  })
+		  .enter()
+		  .append('div').attr("class", "row")
+		  ;
+		 		
+		
+		// create a cell in each row for each column
+		var totals = [0,0,0];
+		var cells = rows.selectAll('.detail')
+		  .data(function (row) {
+			var skipTimeStamp = row.slice(2);
+			totals[0]+=row[ CALC_COLUMN+4];
+			totals[1]+=row[ CALC_COLUMN+7];
+			totals[2]+=row[ CALC_COLUMN+4]+row[ CALC_COLUMN+7];
+		    return skipTimeStamp;
+		  })
+		  .enter()
+		  .append('div')
+		    .text(function (d) { 
+				if( isNaN(d) )
+					return d;
+				return d.toFixed(2);
+			 })
+			 .attr("class", function(d, i){
+				var classType = "detail col-xs-1 col-md-1 ";
+				if( i ==0 ) 
+					classType = "detail col-xs-2 col-md-2 nitz";
+				else if( i >= CALC_COLUMN && i < CALC_COLUMN+3)
+					 classType+=" thurston";
+				else if( i >= CALC_COLUMN+3 && i < CALC_COLUMN+6)
+					 classType+=" ryan";
+				else 
+					classType +=" nitz";
+				return classType;
+			 });			
+			 d3.select("#thurston_total").text("$"+totals[0]);
+			 d3.select("#ryan_total").text("$"+totals[1]);
+			 d3.select("#nitz_total").text("$"+totals[2]);
+	  }
+	  function addCalculatedColumns(records){
+		for( var i in records){
+			var rate = rateLookup(records[i][4], "Thurston");
+			var hours = timeSpent( records[i][2], records[i][3]);
+			records[i].push(hours);
+			records[i].push(rate);
+
+			var thurston_total = rate*hours
+			records[i].push(thurston_total);
+			rate = rateLookup(records[i][4], "Ryan");
+			hours = timeSpent( records[i][2], records[i][3]);
+			records[i].push(hours);
+			records[i].push(rate);
+
+			var ryan_total = rate*hours;
+			records[i].push(ryan_total);
+			records[i].push(thurston_total+ryan_total)
+			records[i][2] = records[i][2].substring(0,5)+"-"+records[i][3].substring(0,5);
+			records[i].splice(3,1);
+
+		}
+	  }
+	  function rateLookup(who, paying){
+		if( paying == "Thurston"){
+			if( who == "J&S") return 18;
+			if( who == "J&S&N") return 14;
+			return 0;
+		}
+		if( paying == "Ryan"){
+			if( who == "J&S") return 0;
+			if( who == "J&S&N") return 8;
+			return 0;
+		}
+		return 1;	
+	  }
+	   function timeSpent(startTime, endTime){
+			var hour_start = startTime.split(":")[0];
+			var min_start = startTime.split(":")[1];
+			var hour_end = endTime.split(":")[0];
+			var min_end = endTime.split(":")[1];
+			return hour_end-hour_start + (min_end-min_start)/60;	
+	  }
+	  function filterBy2Week(d){
+		var recordDate = moment(d[1]);
+		if( recordDate.month() == queryDate.month() && recordDate.year() == queryDate.year() 
+		&& recordDate.date() > queryDate.date() && recordDate.date() < (queryDate.date()+14))
+			return true;
+		return false;
+	  }
+	  
+	  function twoWeeks(queryDate){
+	    var start = queryDate.date();
+		var days =[];
+		for( var i =0; i < 17; i++){
+			if( start+i < 14 ||( start+i > 14 && start+i < 31))
+				days.push(start+i);
+		}
+		return days;
+	  }
+	  
+	  function recordsOnDay( data, day){
+		return data.filter( function(d){
+		var recordDate = moment(d[1]);
+		if( recordDate.date() == day)
+			return true;
+		return false;
+		});
+	  }
+    </script>
+	
+<script src="https://d3js.org/d3.v3.min.js" charset="utf-8"></script>
+<link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+    <script async defer src="https://apis.google.com/js/api.js"
+      onload="this.onload=function(){};handleClientLoad()"
+      onreadystatechange="if (this.readyState === 'complete') this.onload()">
+    </script>
+  </body>
+</html>
