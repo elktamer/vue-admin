@@ -1,9 +1,6 @@
 import * as types from '../../mutation-types'
 import lazyLoading from './lazyLoading'
-import charts from './charts'
 import uifeatures from './uifeatures'
-import components from './components'
-import tables from './tables'
 
 // show: meta.label -> name
 // name: component name
@@ -12,6 +9,15 @@ import tables from './tables'
 const state = {
   items: [
     {
+      name: 'CRA',
+      path: '/cra',
+      meta: {
+        icon: 'fa-tachometer',
+        link: 'cra/index.vue'
+      },
+      component: lazyLoading('cra', true)
+    },
+/*   {
       name: 'Dashboard',
       path: '/dashboard',
       meta: {
@@ -19,7 +25,8 @@ const state = {
         link: 'dashboard/index.vue'
       },
       component: lazyLoading('dashboard', true)
-    },
+    }
+    ,
     {
       name: 'Axios',
       path: '/axiosDemo',
@@ -30,10 +37,10 @@ const state = {
       },
       component: lazyLoading('axios', true)
     },
-    charts,
-    uifeatures,
-    components,
-    tables
+
+    cra,
+    */
+    uifeatures
   ]
 }
 

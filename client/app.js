@@ -9,9 +9,11 @@ import router from './router'
 import store from './store'
 import * as filters from './filters'
 import { TOGGLE_SIDEBAR } from 'vuex-store/mutation-types'
+import GSignInButton from 'vue-google-signin-button'
 
 Vue.router = router
 Vue.use(VueAxios, axios)
+Vue.use(GSignInButton)
 Vue.use(VueAuth, {
   auth: {
     request: function (req, token) {

@@ -7,11 +7,9 @@
     <h1 class="is-title is-bold">{{ name.replace('-', ' ') }}</h1>
 
     <p>
-      <strong>{{ description }}</strong>,
-      <a :href="homepage">Live Demo</a>
+      <a href="https://goo.gl/forms/JXGVXMkAYeYFWla43">TimeSheet Form</a>
     </p>
 
-    <p>Supports Vue 2.0 and Bulma 0.3!</p>
   </div>
 </template>
 
