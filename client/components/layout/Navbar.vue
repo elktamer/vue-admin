@@ -18,13 +18,8 @@
           </a>
         </div>
         <div class="nav-right is-flex">
-          <g-signin-button
-    :params="googleSignInParams"
-    @success="onSignInSuccess"
-    @error="onSignInError">
-    Sign in with Google
-  </g-signin-button>
-        
+          <router-link v-if="!$auth.check()" to="/login" class="nav-item">Login</router-link>
+          <a v-if="$auth.check()" @click="logout" class="nav-item">Logout</a>
         </div>
       </nav>
     </div>
@@ -36,19 +31,7 @@ import Tooltip from 'vue-bulma-tooltip'
 import { mapGetters, mapActions } from 'vuex'
 
 export default {
-  data () {
-    return {
-      /**
-       * The Auth2 parameters, as seen on
-       * https://developers.google.com/identity/sign-in/web/reference#gapiauth2initparams.
-       * As the very least, a valid client_id must present.
-       * @type {Object}
-       */
-      googleSignInParams: {
-        client_id: '202092006015-j6b70cvq260ltgm6ohurn2g5knajq8rt.apps.googleusercontent.com'
-      }
-    }
-  },
+
   components: {
     Tooltip
   },
@@ -75,19 +58,11 @@ export default {
         // error: function () {},
         // etc...
       })
-    },
-    onSignInSuccess (googleUser) {
-      // `googleUser` is the GoogleUser object that represents the just-signed-in user.
-      // See https://developers.google.com/identity/sign-in/web/reference#users
-      //  const profile = googleUser.getBasicProfile() // etc etc
-    },
-    onSignInError (error) {
-      // `error` contains any error occurred.
-      console.log('OH NOES', error)
     }
   }
 }
 </script>
+
 <style lang="scss">
 @import '~bulma/sass/utilities/variables';
 
@@ -120,14 +95,5 @@ export default {
   .admin {
     color: #28374B;
   }
-}
-.g-signin-button {
-  /* This is where you control how the button looks. Be creative! */
-  display: inline-block;
-  padding: 4px 8px;
-  border-radius: 3px;
-  background-color: #3c82f7;
-  color: #fff;
-  box-shadow: 0 3px 0 #0f69ff;
 }
 </style>

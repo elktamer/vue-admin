@@ -3,6 +3,21 @@
     <div class="tile is-ancestor">
       <div class="tile is-parent">
         <article class="tile is-child box">
+          <ul is="transition-group">
+              <li v-for="user in users" class="user" :key="user['.key']">
+                  <span>{{user.name}} - {{user.email}}</span>
+                  <button v-on:click="removeUser(user)">X</button>
+                </li>
+          </ul>
+          <form id="form" v-on:submit.prevent="addUser">
+    <input type="text" v-model="newUser.name" placeholder="Username">
+    <input type="email" v-model="newUser.email" placeholder="email@email.com">
+    <input type="submit" value="Add User">
+  </form>
+  <ul class="errors">
+    <li v-show="!validation.name">Name cannot be empty.</li>
+    <li v-show="!validation.email">Please provide a valid email address.</li>
+  </ul>
           <h4 class="title">Table Responsive</h4>
           <div class="table-responsive">
             <table class="table is-bordered is-striped is-narrow">
@@ -31,110 +46,57 @@
     </div>
   </div>
 </template>
-
 <script>
-import Chart from 'vue-bulma-chartjs'
-import gapi from '../../../api-client'
-const api = '/MODApis/Api/v2/InteractiveChart/json'
-var CLIENT_ID = '202092006015-j6b70cvq260ltgm6ohurn2g5knajq8rt.apps.googleusercontent.com'
+// Setup Firebase
+var emailRE = /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/
 
- // Array of API discovery doc URLs for APIs used by the quickstart
-var DISCOVERY_DOCS = ['https://sheets.googleapis.com/$discovery/rest?version=v4']
+import firebase from 'firebase'
+var config = {
+  apiKey: 'AIzaSyAi_yuJciPXLFr_PYPeU3eTvtXf8jbJ8zw',
+  authDomain: 'localhost:8080',
+  databaseURL: 'https://earnest-fuze-165417.firebaseio.com'
+}
+firebase.initializeApp(config)
 
- // Authorization scopes required by the API; multiple scopes can be
- // included, separated by spaces.
-var SCOPES = 'https://www.googleapis.com/auth/spreadsheets.readonly'
+var usersRef = firebase.database().ref('users')
 
-export default {
-  components: {
-    Chart
-  },
 
-  data () {
-    return {
-      params: {
-        symbol: 'AAPL',
-        numberOfDays: 450,
-        dataPeriod: 'Month'
-      },
-      symbols: ['AAPL', 'MSFT', 'JNJ', 'GOOG'],
-      periods: ['Day', 'Week', 'Month', 'Quarter', 'Year'],
-      data: [],
-      labels: [],
-      isloading: false,
-      options: {
-        legend: { display: false },
-        animation: { duration: 0 },
-        scales: {
-          xAxes: [{
-            type: 'time',
-            time: {
-              unit: 'month'
-            }
-          }]
-        }
-      }
+  data: {
+    newUser: {
+      name: '',
+      email:''
     }
   },
-
+  firebase: {
+    users: usersRef
+  },
   computed: {
-    stockData () {
+    validation: function () {
       return {
-        labels: this.labels,
-        datasets: [{
-          fill: false,
-          lineTension: 0.25,
-          data: this.data,
-          label: 'Close price',
-          pointBackgroundColor: '#1fc8db',
-          pointBorderWidth: 1
-        }]
+        name: !!this.newUser.name.trim(),
+        email: emailRE.test(this.newUser.email)
       }
+    },
+    isValid: function () {
+      var validation = this.validation
+      return Object.keys(validation).every(function (key) {
+        return validation[key]
+      })
     }
   },
-
   methods: {
-    loadData () {
-      this.isloading = true
-      this.labels.length = 0
-      this.data.length = 0
-      this.$http({
-        url: api,
-        transformResponse: [(data) => {
-          return JSON.parse(data.replace(/T00:00:00/g, ''))
-        }],
-        params: {
-          parameters: {
-            Normalized: false,
-            NumberOfDays: parseInt(this.params.numberOfDays),
-            DataPeriod: this.params.dataPeriod,
-            Elements: [{'Symbol': this.params.symbol, 'Type': 'price', 'Params': ['c']}]
-          }
-        }
-      }).then((response) => {
-        let dates = response.data.Dates
-        let price = response.data.Elements[0].DataSeries.close.values
-        this.data.push(...price)
-        this.labels.push(...dates)
-        this.isloading = false
-      }).catch((error) => {
-        console.log(error)
-      })
+    addUser: function () {
+      if (this.isValid) {
+        usersRef.push(this.newUser)
+        this.newUser.name = ''
+        this.newUser.email = ''
+      }
     },
-    initClient () {
-      gapi.client.init({
-        discoveryDocs: DISCOVERY_DOCS,
-        clientId: CLIENT_ID,
-        scope: SCOPES
-      }).then(function () {
-          // Listen for sign-in state changes.
-        // gapi.auth2.getAuthInstance().isSignedIn.listen(loadData)
-
-          // Handle the initial sign-in state.
-      })
+    removeUser: function (user) {
+      usersRef.child(user['.key']).remove()
     }
   }
-}
+
 </script>
 <style lang="scss">
 .table-responsive {
